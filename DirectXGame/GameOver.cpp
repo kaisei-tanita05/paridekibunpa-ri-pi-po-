@@ -55,6 +55,7 @@ void GameOver::Initialize() {
 
 	worldTransformIdiotFace_.scale_ = {kIdiotFace, kIdiotFace, kIdiotFace};
 
+	//うざい顔の動き
 	const float kIdiotFaceScale = 10.0f;
 
 	worldTransformIdiotFace_.scale_ = {kIdiotFaceScale, kIdiotFaceScale, kIdiotFaceScale};
