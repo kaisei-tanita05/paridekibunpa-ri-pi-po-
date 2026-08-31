@@ -12,6 +12,7 @@ class MapChipField;
 
 class Enemy;
 
+class MoveBlock;
 class Player {
 
 public:
@@ -109,6 +110,8 @@ public:
 	void SetDead() { isDead_ = true; }
 
 	void SetHit() { isHit_ = true; }
+
+	void OnMoveBlockCollision(MoveBlock* block);
 
 private:
 	// ワールド変換データ

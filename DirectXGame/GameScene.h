@@ -10,6 +10,8 @@
 #include "UpData.h"
 #include <KamataEngine.h>
 #include "enemyBullet.h"
+#include "MoveBlock.h"
+#include <list>
 
 //ゲームシーン
 class GameScene 
@@ -213,4 +215,5 @@ public:
 
 	uint32_t playpariSEHandle_ = 0;
 
+	std::list<MoveBlock*> moveBlocks_;
 };

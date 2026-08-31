@@ -284,6 +284,17 @@ void GameScene::GenerateBlocks() {
 				continue;
 			}
 
+			if (type == MapChipType::kMove) {
+
+				MoveBlock* block = new MoveBlock();
+
+				block->Initialize(blockModel_, &camera_, mapChipField_->GetMapChipPositionByIndex(x, y));
+
+				moveBlocks_.push_back(block);
+
+				continue;
+			}
+
 			WorldTransform* worldTransform = new WorldTransform();
 			worldTransform->Initialize();
 			worldTransform->translation_ = mapChipField_->GetMapChipPositionByIndex(x, y);
@@ -378,6 +389,10 @@ void GameScene::Update() {
 		// 自キャラの更新
 		player_->UpDate();
 
+		for (MoveBlock* block : moveBlocks_) {
+			block->Update();
+		}
+
 		for (Enemy* enemy : enemies_) {
 			enemy->UpDate();
 		}
@@ -430,6 +445,10 @@ void GameScene::Update() {
 
 		//  自キャラの更新
 		player_->UpDate();
+
+		for (MoveBlock* block : moveBlocks_) {
+			block->Update();
+		}
 
 		// プレイヤーが下に落ちすぎたら死亡扱いにしてフェーズを変更
 		if (player_->GetWorldPosition().y < -6.0f) { // 閾値は環境に応じて調整
@@ -614,6 +633,10 @@ void GameScene::Draw() {
 		}
 	}
 
+	for (MoveBlock* block : moveBlocks_) {
+		block->Draw();
+	}
+
 	// 02_09 12枚目 敵更新
 	for (Enemy* enemy : enemies_) {
 		enemy->Draw();
@@ -687,12 +710,50 @@ void GameScene::Draw() {
 void GameScene::CheckAllCollisions() {
 
 	// 判定対象1と2の座標
-	AABB aabb1, aabb2, aabb3;
+	AABB aabb1 = player_->GetAABB(), aabb2, aabb3;
+
+
+	for (MoveBlock* block : moveBlocks_) {
+
+		AABB blockAABB = block->GetAABB();
+
+		if (IsCollision(aabb1, blockAABB)) {
+
+			player_->OnMoveBlockCollision(block);
+
+			// プレイヤーの位置が変わったのでAABBを更新 
+			aabb1 = player_->GetAABB();
+		}
+	}
+
+
+	{
+		aabb1 = player_->GetAABB();
+
+		for (uint32_t y = 0; y < blockTypes_.size(); ++y) {
+			for (uint32_t x = 0; x < blockTypes_[y].size(); ++x) {
+				if (blockTypes_[y][x] != MapChipType::kTrap2)
+					continue;
+
+				WorldTransform* wt = worldTransformBlocks_[y][x];
+				if (!wt)
+					continue;
+
+				// ブロックの実際の大きさに合わせる
+				aabb3.min = {wt->translation_.x - MapChipField::kBlockWidth / 2.0f, wt->translation_.y - MapChipField::kBlockHeight / 2.0f, wt->translation_.z - MapChipField::kBlockWidth / 2.0f};
+
+				aabb3.max = {wt->translation_.x + MapChipField::kBlockWidth / 2.0f, wt->translation_.y + MapChipField::kBlockHeight / 2.0f, wt->translation_.z + MapChipField::kBlockWidth / 2.0f};
+
+				if (IsCollision(aabb1, aabb3)) {
+					trap2Visibility_[y][x] = true;
+				}
+			}
+		}
+	}
 
 #pragma region 自キャラと敵キャラの当たり判定
 	{
-		// 自キャラの座標
-		aabb1 = player_->GetAABB();
+		
 
 		// 自キャラと敵弾全ての当たり判定
 		for (Enemy* enemy : enemies_) {
@@ -727,51 +788,18 @@ void GameScene::CheckAllCollisions() {
 			if (IsCollision(aabb1, aabb3)) {
 				player_->OnCollision2(bullet);
 
-				//dieCount_--;
-
-				/*if (dieCount_ <= 0) {
-
-				}*/
-
 				// 現在の弾の速度（大きさを保持するために使う）
 				Vector3 curV = bullet->GetVelocity();
-
-				// Vector3 v = bullet->GetVelocity();
-				// v.x *= -1.0f; // ← X 方向反転（必要なら Y,Z も）
-				// bullet->SetVelocity(v);
-
-				//// 弾の位置を少し押し戻してめり込み防止
-				// Vector3 pos = bullet->GetPosition();
-				// pos.x += v.x * 0.5f;
-				// bullet->SetPosition(pos);
 
 				// --- 「スペース押下」かつプレイヤーが生存しているなら跳ね返す ---
 				if (!player_->IsDead() && Input::GetInstance()->TriggerKey(DIK_SPACE)) {
 					bullet->SetVelocity({-curV.x, -curV.y, -curV.z});
-					//// プレイヤー位置と弾位置
-					// Vector3 playerPos = player_->GetWorldPosition();
-					// Vector3 bulletPos = bullet->GetPosition();
-
-					//// 跳ね返す方向 = 弾位置 - プレイヤー位置
-					// Vector3 dir = {bulletPos.x - playerPos.x, 0, bulletPos.z - playerPos.z};
-					// MathUtility::Normalize(dir);
-
-					//// 現在の速度ベクトルの大きさを保持（またはデフォルト速度に）
-					// float speed = MathUtility::Length(curV);
-					// if (speed < 1e-6f)
-					//	speed = 0.25f; // もし速度がほぼ0なら適当な速度を設定
-
-					//// 新しい速度を設定（プレイヤーから弾へ向かう方向）
-					// Vector3 newV = {dir.x * speed, dir.y * speed, dir.z * speed};
 
 					// 跳ね返しフラグを立てる
 					bullet->SetReflected(true);
 
 					IsBounce();
 
-					// 弾を少しプレイヤー側から押し出してめり込みを防止
-					// Vector3 newPos = {bulletPos.x + dir.x * 0.5f, bulletPos.y + dir.y * 0.5f, bulletPos.z + dir.z * 0.5f};
-					// bullet->SetPosition(newPos);
 
 					playpariSEHandle_ = Audio::GetInstance()->PlayWave(pariSEHandle_, false, 10.0f);
 					break;

@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "Player.h"
+#include "MoveBlock.h"
 
 using namespace KamataEngine;
 
@@ -372,11 +373,19 @@ void Player::CheckMapCollisionUp(CollisionMapInfo& info) {
 		hit = true;
 	}
 
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
+		hit = true;
+	}
+
 	// 右上点の判定
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightTop]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex + 1);
 	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+		hit = true;
+	}
+
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
 		hit = true;
 	}
 
@@ -424,11 +433,19 @@ void Player::CheckMapCollisionDown(CollisionMapInfo& info) {
 		hit = true;
 	}
 
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
+		hit = true;
+	}
+
 	// 右下点の判定
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex - 1);
 	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+		hit = true;
+	}
+
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
 		hit = true;
 	}
 
@@ -477,11 +494,19 @@ void Player::UpdateOnGround(const CollisionMapInfo& info) {
 				hit = true;
 			}
 
+			if (mapChipType == MapChipType::kTrap2) {
+				hit = true;
+			}
+
 			// 右下点の判定
 			indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightBottom] + Vector3(0.0f, -kGroundSearchHeight, 0.0f));
 			mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 			if (mapChipType == MapChipType::kBlock) {
 
+				hit = true;
+			}
+
+			if (mapChipType == MapChipType::kTrap2) {
 				hit = true;
 			}
 
@@ -548,11 +573,19 @@ void Player::CheckMapCollisionRight(CollisionMapInfo& info) {
 		hit = true;
 	}
 
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
+		hit = true;
+	}
+
 	// 右下点の判定
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kRightBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex - 1, indexSet.yIndex);
 	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+		hit = true;
+	}
+
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
 		hit = true;
 	}
 
@@ -603,12 +636,20 @@ void Player::CheckMapCollisionLeft(CollisionMapInfo& info) {
 		hit = true;
 	}
 
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
+		hit = true;
+	}
+
 	// 左下点の判定
 	indexSet = mapChipField_->GetMapChipIndexSetByPosition(positionsNew[kLeftBottom]);
 	mapChipType = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex, indexSet.yIndex);
 	mapChipTypeNext = mapChipField_->GetMapChipTypeByIndex(indexSet.xIndex + 1, indexSet.yIndex);
 
 	if (mapChipType == MapChipType::kBlock && mapChipTypeNext != MapChipType::kBlock) {
+		hit = true;
+	}
+
+	if (mapChipType == MapChipType::kTrap2 && mapChipTypeNext != MapChipType::kTrap2) {
 		hit = true;
 	}
 
@@ -641,6 +682,73 @@ Vector3 Player::CornerPosition(const Vector3& center, Corner corner) {
 	};
 
 	return center + offsetTable[static_cast<uint32_t>(corner)];
+}
+
+
+// MoveBlock当たり判定
+void Player::OnMoveBlockCollision(MoveBlock* block) {
+	AABB player = GetAABB();
+	AABB move = block->GetAABB();
+
+	float left = player.max.x - move.min.x;
+
+	float right = move.max.x - player.min.x;
+
+	float top = move.max.y - player.min.y;
+
+	float bottom = player.max.y - move.min.y;
+
+	float minOverlap = left;
+
+	int dir = 0;
+
+	if (right < minOverlap) {
+		minOverlap = right;
+		dir = 1;
+	}
+
+	if (top < minOverlap) {
+		minOverlap = top;
+		dir = 2;
+	}
+
+	if (bottom < minOverlap) {
+		minOverlap = bottom;
+		dir = 3;
+	}
+
+	switch (dir) {
+
+	// 左から当たる
+	case 0:
+		worldTransform_.translation_.x = move.min.x - kWidth / 2.0f;
+		velocity_.x = 0;
+		break;
+
+	// 右から当たる
+	case 1:
+		worldTransform_.translation_.x = move.max.x + kWidth / 2.0f;
+		velocity_.x = 0;
+		break;
+
+	// 下から当たる
+	case 2:
+		worldTransform_.translation_.y = move.max.y + kHeight / 2.0f;
+
+		velocity_.y = 0;
+		onGround_ = true;
+
+		// ブロックと一緒に横移動
+		worldTransform_.translation_.x += block->GetMove().x;
+		break;
+
+	// 上から当たる
+	case 3:
+		worldTransform_.translation_.y = move.min.y - kHeight / 2.0f;
+
+		velocity_.y = 0;
+		break;
+	}
 }
 
 void Player::Draw() {
