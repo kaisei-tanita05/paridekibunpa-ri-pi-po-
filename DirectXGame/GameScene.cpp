@@ -769,39 +769,6 @@ void GameScene::CheckAllCollisions() {
 			}
 		}
 
-		// for (EnemyBullet* bullet : enemyBullets_) {
-
-		//	if (!bullet || bullet->IsDead()) {
-		//		continue;
-		//	}
-
-		//	aabb3 = bullet->GetAABB();
-
-		//	//playerとEnemyBulletの当たり判定
-		//	if (IsCollision(aabb1, aabb3)) {
-		//		player_->OnCollision2(bullet);
-
-		//		// 現在の弾の速度（大きさを保持するために使う）
-		//		Vector3 curV = bullet->GetVelocity();
-
-		//		// --- 「スペース押下」かつプレイヤーが生存しているなら跳ね返す ---
-		//		if (!player_->IsDead() && Input::GetInstance()->TriggerKey(DIK_SPACE)) {
-		//			bullet->SetVelocity({-curV.x, -curV.y, -curV.z});
-
-		//			// 跳ね返しフラグを立てる
-		//			bullet->SetReflected(true);
-
-		//			IsBounce();
-
-		//			playpariSEHandle_ = Audio::GetInstance()->PlayWave(pariSEHandle_, false, 10.0f);
-		//			break;
-		//		} else {
-		//			bullet->SetDead();
-		//			break;
-		//		}
-		//	}
-		//}
-
 		for (EnemyBullet* bullet : enemyBullets_) {
 			if (!bullet || bullet->IsDead()) {
 				continue;
@@ -822,7 +789,7 @@ void GameScene::CheckAllCollisions() {
 					IsBounce();
 					// パリィの効果音
 					playpariSEHandle_ = Audio::GetInstance()->PlayWave(pariSEHandle_, false, 10.0f);
-				} else { // パリィ失敗時のみダメージ処理 
+				} else {                           // パリィ失敗時のみダメージ処理
 					player_->OnCollision2(bullet); // 弾を消す
 					bullet->SetDead();
 				}

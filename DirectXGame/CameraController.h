@@ -45,6 +45,9 @@ private:
 
 	KamataEngine::Vector3 targetOffset_ = {0, 0, -30.0f};
 
+	// カメラの自動スクロール速度
+	float autoScrollSpeed_ = 0.05f;
+
 	// カメラ移動範囲
 	Rect movableArea_ = {0, 100, 0, 100};
 
